@@ -1,5 +1,5 @@
 from enum import Enum
-from fastapi import FastAPI,Query
+from fastapi import FastAPI,Query,Path
 from pydantic import BaseModel
 from typing import Annotated
 
@@ -252,3 +252,79 @@ async def read_items(
         return {"hidden_query": hidden_query}
     else:
         return {"hidden_query": "Not found"}
+    
+
+# Path Parameters and Numeric Validations
+@app.get("/itemsnumeric/{item_id}")
+async def read_items(
+    item_id: Annotated[int, Path(title="The ID of the item to get")],
+    q: Annotated[str | None, Query(alias="item-query")] = None,
+):
+    results = {"item_id": item_id}
+    if q:
+        results.update({"q": q})
+    return 
+
+# Order the parameters as you need
+@app.get("/itemsorderpara/{item_id}")
+async def read_items(
+    q: str, item_id: Annotated[int, Path(title="The ID of the item to get")]
+):
+    results = {"item_id": item_id}
+    if q:
+        results.update({"q": q})
+    return results
+
+# Order the parameters as you need, tricks
+@app.get("/itemstricks/{item_id}")
+async def read_items(
+    item_id: Annotated[int, Path(title="The ID of the item to get")], q: str
+):
+    results = {"item_id": item_id}
+    if q:
+        results.update({"q": q})
+    return results
+
+# Better with Annotated
+@app.get("/itemsbetterannotated/{item_id}")
+async def read_items(
+    item_id: Annotated[int, Path(title="The ID of the item to get")], q: str
+):
+    results = {"item_id": item_id}
+    if q:
+        results.update({"q": q})
+    return results
+
+# Number validations: greater than or equal
+@app.get("/itemsnumbervalidationgraterthan/{item_id}")
+async def read_items(
+    item_id: Annotated[int, Path(title="The ID of the item to get", ge=1)], q: str
+):
+    results = {"item_id": item_id}
+    if q:
+        results.update({"q": q})
+    return results
+
+# Number validations: greater than and less than or equal
+@app.get("/itemsnumbervalidationgraterthanlessathan/{item_id}")
+async def read_items(
+    item_id: Annotated[int, Path(title="The ID of the item to get", gt=0, le=1000)],
+    q: str,
+):
+    results = {"item_id": item_id}
+    if q:
+        results.update({"q": q})
+    return results
+
+# Number validations: floats, greater than and less than
+@app.get("/itemsfloat/{item_id}")
+async def read_items(
+    *,
+    item_id: Annotated[int, Path(title="The ID of the item to get", ge=0, le=1000)],
+    q: str,
+    size: Annotated[float, Query(gt=0, lt=10.5)],
+):
+    results = {"item_id": item_id}
+    if q:
+        results.update({"q": q})
+    return results
