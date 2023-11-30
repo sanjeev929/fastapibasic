@@ -1,8 +1,29 @@
 from enum import Enum
-from fastapi import FastAPI,Query,Path
-from pydantic import BaseModel
-from typing import Annotated
+from fastapi import FastAPI,Query,Path,Body
+from pydantic import BaseModel,Field,HttpUrl
+from typing import Annotated,Union,List,Dict
 
+
+class ModelName(str, Enum):
+    alexnet = "alexnet"
+    resnet = "resnet"
+    lenet = "lenet"
+    
+class Image(BaseModel):
+    url: str
+    name: str 
+
+class User(BaseModel):
+    username: str
+    full_name: str | None = None
+
+class Item0(BaseModel):
+    name: str
+    description: str | None = Field(
+        default=None, title="The description of the item", max_length=5
+    )
+    price: float = Field(gt=0, description="The price must be greater than zero")
+    tax: float | None = None 
 
 class Item(BaseModel):
     name: str
@@ -10,10 +31,73 @@ class Item(BaseModel):
     price: float
     tax: float | None = None
 
-class ModelName(str, Enum):
-    alexnet = "alexnet"
-    resnet = "resnet"
-    lenet = "lenet"
+class Item1(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+    tags: list = []
+
+class Item2(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+    tags: List[str] = [] 
+
+class Item3(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+    tags: set[str] = set()
+
+class Item4(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+    tags: set[str] = set()
+    image: Image | None = None
+
+class Image1(BaseModel):
+    url: HttpUrl
+    name: str
+
+
+class Item5(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+    tags: set[str] = set()
+    image: Image1 | None = None    
+
+class Itemm(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+
+class Image2(BaseModel):
+    url: HttpUrl
+    name: str
+
+
+class Item6(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+    tags: set[str] = set()
+    images: list[Image2] | None = None
+
+
+class Offer(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    items: list[Item]    
 
 app = FastAPI()
 
@@ -328,3 +412,105 @@ async def read_items(
     if q:
         results.update({"q": q})
     return results
+
+# Body - Multiple Parameters
+# Mix Path, Query and body parameters
+
+@app.put("/itemsmixpath/{item_id}")
+async def update_item(
+    item_id: Annotated[int, Path(title="The ID of the item to get", ge=0, le=1000)],
+    q: str | None = None,
+    item: Itemm | None = None,
+):
+    results = {"item_id": item_id}
+    if q:
+        results.update({"q": q})
+    if item:
+        results.update({"item": item})
+    return results
+
+# Singular values in body
+@app.put("/itemssingular/{item_id}")
+async def update_item(
+    item_id: int, item: Itemm, user: User, importance: Annotated[int, Body()]
+):
+    results = {"item_id": item_id, "item": item, "user": user, "importance": importance}
+    return results
+
+# Multiple body params and query
+@app.put("/itemsmultiplepara/{item_id}")
+async def update_item(
+    *,
+    item_id: int,
+    item: Itemm,
+    user: User,
+    importance: Annotated[int, Body(gt=0)],
+    q: str | None = None,
+):
+    results = {"item_id": item_id, "item": item, "user": user, "importance": importance}
+    if q:
+        results.update({"q": q})
+    return results
+
+# Embed a single body parameter
+@app.put("/itemsembed/{item_id}")
+async def update_item(item_id: int, item: Item = Body(embed=False)):
+    results = {"item_id": item_id, "item": item}
+    return results
+
+# Body - Fields it verify the data from class so it show error inside json
+@app.put("/itemsbodyfield/{item_id}")
+async def update_item(item_id: int, item: Item = Body(embed=True)):
+    results = {"item_id": item_id, "item": item}
+    return results
+
+# Body - Nested Models
+# List fields
+@app.put("/itemsnestedmodel/{item_id}")
+async def update_item(item_id: int, item: Item0):
+    results = {"item_id": item_id, "item": item}
+    return results
+# List fields with type parameter    
+@app.put("/itemslisttype/{item_id}")
+async def update_item(item_id: int, item: Item1):
+    results = {"item_id": item_id, "item": item}
+    return results
+
+# Declare a list with a type parameter in inside class
+@app.put("/itemsparameterinsideclass/{item_id}")
+async def update_item(item_id: int, item: Item2):
+    results = {"item_id": item_id, "item": item}
+    return results
+
+# Set types
+@app.put("/itemsset/{item_id}")
+async def update_item(item_id: int, item: Item3):
+    results = {"item_id": item_id, "item": item}
+    return results
+
+# Define a submodel
+@app.put("/itemssubmodel/{item_id}")
+async def update_item(item_id: int, item: Item4):
+    results = {"item_id": item_id, "item": item}
+    return results
+
+# Special types and url validation
+@app.put("/itemsspecialtype/{item_id}")
+async def update_item(item_id: int, item: Item5):
+    results = {"item_id": item_id, "item": item}
+    return results
+
+# Deeply nested models
+@app.post("/offers/")
+async def create_offer(offer: Offer):
+    return offer
+
+# Bodies of pure lists
+@app.post("/images/multiple/")
+async def create_multiple_images(images: List[Image1]):
+    return images
+
+# Bodies of arbitrary dicts
+@app.post("/index-weights/")
+async def create_index_weights(weights: Dict[int, float]):
+    return weights
