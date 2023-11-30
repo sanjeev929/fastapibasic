@@ -11,7 +11,7 @@ For support or inquiries related to this project, please contact [sanjeevsanju92
 pip install requirements.txt
 ```
 
-## Create virtual environment
+## Create virtual environment and activate
 ```bash
 python -m venv envname
 ```
