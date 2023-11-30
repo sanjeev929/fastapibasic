@@ -22,7 +22,7 @@ Now your project is almost ready, you can view the Swagger UI by open your brows
 ```bash
 127.0.0.1:8000/docs
 ```
-Now you can see the Swagger UI click that and enter try make changes in body or value fields then click Excute.
+Now you can see the Swagger UI click that and enter try make changes in body or value fields then click Execute.
 your can see your response in Response field.
 
 # Note
