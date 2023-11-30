@@ -8,7 +8,7 @@ For support or inquiries related to this project, please contact [sanjeevsanju92
 
 ## Installation
 ```bash
-pip install requirements.txt
+pip install -r requirements.txt
 ```
 
 ## Create virtual environment and activate
