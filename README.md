@@ -1,6 +1,6 @@
 ## fastapibasics
 
-A brief description of your project.
+Fast API Basic code for references, make useful this.
 
 # Support
 
