@@ -6,14 +6,13 @@ Fast API Basic code for references, make useful this.
 
 For support or inquiries related to this project, please contact [sanjeevsanju929@gmail.com]).
 
-## Installation
-```bash
-pip install -r requirements.txt
-```
-
 ## Create virtual environment and activate
 ```bash
 python -m venv envname
+```
+## Installation
+```bash
+pip install -r requirements.txt
 ```
 ## Run the project in terminal using following command
 ```bash
