@@ -28,5 +28,5 @@ your can see your response in Response field.
 
 # Note
 
-If any other queries visite official website [https://fastapi.tiangolo.com/tutorial/]).
+If any other queries visit official website [https://fastapi.tiangolo.com/tutorial/]).
 
