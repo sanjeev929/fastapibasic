@@ -1,7 +1,9 @@
 from enum import Enum
-from fastapi import FastAPI,Query,Path,Body
+from datetime import datetime, time, timedelta
+from fastapi import FastAPI,Query,Path,Body,Cookie
 from pydantic import BaseModel,Field,HttpUrl
 from typing import Annotated,Union,List,Dict
+from uuid import UUID
 
 
 class ModelName(str, Enum):
@@ -92,6 +94,30 @@ class Item6(BaseModel):
     tags: set[str] = set()
     images: list[Image2] | None = None
 
+class Item7(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "name": "Foo",
+                    "description": "A very nice Item",
+                    "price": 35.4,
+                    "tax": 3.2,
+                }
+            ]
+        }
+    }
+ 
+class Item9(BaseModel):
+    name: str = Field(examples=["Foo"])
+    description: str | None = Field(default=None, examples=["A very nice Item"])
+    price: float = Field(examples=[35.4])
+    tax: float | None = Field(default=None, examples=[3.29]) 
 
 class Offer(BaseModel):
     name: str
@@ -514,3 +540,83 @@ async def create_multiple_images(images: List[Image1]):
 @app.post("/index-weights/")
 async def create_index_weights(weights: Dict[int, float]):
     return weights
+
+# Declare Request Example Data
+# Extra JSON Schema data in Pydantic models
+@app.put("/itemsjsonschema/{item_id}")
+async def update_item(item_id: int, item: Item7):
+    results = {"item_id": item_id, "item": item}
+    return results
+
+# Field additional arguments
+@app.put("/itemsadditionalarguments/{item_id}")
+async def update_item(item_id: int, item: Item9):
+    results = {"item_id": item_id, "item": item}
+    return results
+
+# Using the openapi_examples Parameter
+@app.put("/itemsopenapiexample/{item_id}")
+async def update_item(
+    *,
+    item_id: int,
+    item: Annotated[
+        Item,
+        Body(
+            openapi_examples={
+                "normal": {
+                    "summary": "A normal example",
+                    "description": "A **normal** item works correctly.",
+                    "value": {
+                        "name": "Foo",
+                        "description": "A very nice Item",
+                        "price": 35.4,
+                        "tax": 3.2,
+                    },
+                },
+                "converted": {
+                    "summary": "An example with converted data",
+                    "description": "FastAPI can convert price `strings` to actual `numbers` automatically",
+                    "value": {
+                        "name": "Bar",
+                        "price": "35.4",
+                    },
+                },
+                "invalid": {
+                    "summary": "Invalid data is rejected with an error",
+                    "value": {
+                        "name": "Baz",
+                        "price": "thirty five point four",
+                    },
+                },
+            },
+        ),
+    ],
+):
+    results = {"item_id": item_id, "item": item}
+    return results
+
+# Extra Data Types
+@app.put("/itemsextradatatypes/{item_id}")
+async def read_items(
+    item_id: UUID,
+    start_datetime: Annotated[datetime | None, Body()] = None,
+    end_datetime: Annotated[datetime | None, Body()] = None,
+    repeat_at: Annotated[time | None, Body()] = None,
+    process_after: Annotated[timedelta | None, Body()] = None,
+):
+    start_process = start_datetime + process_after
+    duration = end_datetime - start_process
+    return {
+        "item_id": item_id,
+        "start_datetime": start_datetime,
+        "end_datetime": end_datetime,
+        "repeat_at": repeat_at,
+        "process_after": process_after,
+        "start_process": start_process,
+        "duration": duration,
+    }
+
+# Cookie Parameters
+@app.get("/itemscookiepara/")
+async def read_items(ads_id: Annotated[str | None, Cookie()] = None):
+    return {"ads_id": ads_id}
