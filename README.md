@@ -1,19 +1,18 @@
 ## fastapibasics
 
-A brief description of your project.
+Fast API Basic code for references, make useful this.
 
 # Support
 
 For support or inquiries related to this project, please contact [sanjeevsanju929@gmail.com]).
 
-## Installation
-```bash
-pip install requirements.txt
-```
-
-## Create virtual environment
+## Create virtual environment and activate
 ```bash
 python -m venv envname
+```
+## Installation
+```bash
+pip install -r requirements.txt
 ```
 ## Run the project in terminal using following command
 ```bash
@@ -23,7 +22,7 @@ Now your project is almost ready, you can view the Swagger UI by open your brows
 ```bash
 127.0.0.1:8000/docs
 ```
-Now you can see the Swagger UI click that and enter try make changes in body or value fields then click Excute.
+Now you can see the Swagger UI click that and enter try make changes in body or value fields then click Execute.
 your can see your response in Response field.
 
 # Note
