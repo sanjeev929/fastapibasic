@@ -1,6 +1,6 @@
 from enum import Enum
 from datetime import datetime, time, timedelta
-from fastapi import FastAPI,Query,Path,Body,Cookie
+from fastapi import FastAPI,Query,Path,Body,Cookie,Header
 from pydantic import BaseModel,Field,HttpUrl
 from typing import Annotated,Union,List,Dict
 from uuid import UUID
@@ -117,7 +117,15 @@ class Item9(BaseModel):
     name: str = Field(examples=["Foo"])
     description: str | None = Field(default=None, examples=["A very nice Item"])
     price: float = Field(examples=[35.4])
-    tax: float | None = Field(default=None, examples=[3.29]) 
+    tax: float | None = Field(default=None, examples=[3.29])
+
+class Item10(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+    tags: list[str] = []
+
 
 class Offer(BaseModel):
     name: str
@@ -620,3 +628,33 @@ async def read_items(
 @app.get("/itemscookiepara/")
 async def read_items(ads_id: Annotated[str | None, Cookie()] = None):
     return {"ads_id": ads_id}
+
+# Header Parameters
+@app.get("/itemsheader/")
+async def read_items(user_agent: Annotated[str | None, Header()] = None):
+    return {"User-Agent": user_agent}
+
+# Automatic conversion
+@app.get("/itemsautomeaticconversion/")
+async def read_items(
+    user_agent: Annotated[str | None, Header(convert_underscores=False)] = None
+):
+    return {"strange_header": user_agent}
+
+# Duplicate headers
+@app.get("/itemsduplicateheader/")
+async def read_items(x_token: Annotated[list[str] | None, Header()] = None):
+    return {"X-Token values": x_token}
+
+# Response Model - Return Type
+@app.post("/itemsmodel1/")
+async def create_item(item: Item10):
+    return item
+
+@app.get("/itemsmodel2/")
+async def read_items():
+    return [
+        Item10(name="Portal Gun", price=42.0),
+        Item10(name="Plumbus", price=32.0),
+    ]
+
