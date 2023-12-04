@@ -14,7 +14,7 @@ python -m venv envname
 ```bash
 pip install -r requirements.txt
 ```
-## Run the project in terminal using following command
+## Run the project using following command
 ```bash
 uvicorn main:app --reload
 ```
