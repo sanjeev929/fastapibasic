@@ -1,10 +1,10 @@
 from enum import Enum
 from datetime import datetime, time, timedelta
-from fastapi import FastAPI,Query,Path,Body,Cookie,Header
-from pydantic import BaseModel,Field,HttpUrl
-from typing import Annotated,Union,List,Dict
+from fastapi import FastAPI,Query,Path,Body,Cookie,Header,status,Response
+from fastapi.responses import JSONResponse, RedirectResponse
+from pydantic import BaseModel,Field,HttpUrl,EmailStr
+from typing import Annotated,Union,List,Dict,Any
 from uuid import UUID
-
 
 class ModelName(str, Enum):
     alexnet = "alexnet"
@@ -126,6 +126,52 @@ class Item10(BaseModel):
     tax: float | None = None
     tags: list[str] = []
 
+class Item11(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+    tags: list[str] = []   
+
+class Item12(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float = 10.5
+    tags: list[str] = []
+
+class Item13(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float = 10.5
+
+class UserIn1(BaseModel):
+    username: str
+    password: str
+    email: EmailStr
+    full_name: str | None = None
+
+class UserIn2(BaseModel):
+    username: str
+    password: str
+    email: EmailStr
+    full_name: str | None = None
+
+class UserOut1(BaseModel):
+    username: str
+    email: EmailStr
+    full_name: str | None = None
+
+class BaseUser1(BaseModel):
+    username: str
+    email: EmailStr
+    full_name: str | None = None
+
+
+class UserIn3(BaseUser1):
+    password: str
+
 
 class Offer(BaseModel):
     name: str
@@ -136,8 +182,9 @@ class Offer(BaseModel):
 app = FastAPI()
 
 # Basic
-@app.get("/")
-async def root():
+@app.get("/hi")
+async def root(response:Response):
+    response.status_code=status.HTTP_201_CREATED
     return {"message": "Hello World"}
 
 # path parameters
@@ -161,12 +208,10 @@ async def get_model(model_name: ModelName):
 
     return {"model_name": model_name, "message": "Have some residuals"}
 
-
 #Path convertor
 @app.get("/files/{file_path:path}")
 async def read_file(file_path: str):
     return {"file_path": file_path}
-
 
 #Query Parameters
 fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
@@ -174,7 +219,6 @@ fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"
 @app.get("/item/")
 async def read_item(skip: int = 0, limit: int = 2): # this is for getting number of data from list
     return fake_items_db[skip : skip + limit]
-
 
 #Optional parameters
 @app.get("/itemspara/{item_id}")
@@ -207,7 +251,6 @@ async def read_user_item(user_id: int, item_id: str, q: str | None = "test", sho
             {"description": "This is an amazing item that has a long description"}
         )
     return item
-
 
 #Required query parameters
 @app.get("/itemre1/{item_id}")
@@ -658,3 +701,98 @@ async def read_items():
         Item10(name="Plumbus", price=32.0),
     ]
 
+# response_model Parameter
+@app.post("/itemsmodel3/", response_model=Item11)
+async def create_item(item: Item11):
+    return item
+
+
+@app.get("/itemsmodel4/", response_model=list[Item11])
+async def read_items():
+    return [
+        {"name": "Portal Gun", "price": 42.0},
+        {"name": "Plumbus", "price": 32.0},
+    ]
+
+# Return the same input data
+
+# Don't do this in production it return password to all client!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+@app.post("/user/")
+async def create_user(user: UserIn1):
+    return user
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+# use this type of production
+@app.post("/userproduction/", response_model=UserOut1)
+async def create_user(user: UserIn2) -> Any:
+    return user
+
+@app.post("/userproductionfilter1/")
+async def create_user(user: UserIn3) -> BaseUser1:
+    return user
+
+# Other Return Type Annotations
+@app.get("/portal")
+async def get_portal(teleport: bool = False) -> Response:
+    if teleport:
+        return RedirectResponse(url="https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+    return JSONResponse(content={"message": "Here's your interdimensional portal."})
+
+# Annotate a Response Subclass
+@app.get("/teleport")
+async def get_teleport() -> RedirectResponse:
+    return RedirectResponse(url="https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+
+# Disable Response Model
+@app.get("/portaldisable", response_model=None)
+async def get_portal(teleport: bool = False) -> Response | dict:
+    if teleport:
+        return RedirectResponse(url="https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+    return {"message": "Here's your interdimensional portal."}
+
+# Response Model encoding parameters
+items = {
+    "foo": {"name": "Foo", "price": 50.2},
+    "bar": {"name": "Bar", "description": "The bartenders", "price": 62, "tax": 20.2},
+    "baz": {"name": "Baz", "description": None, "price": 50.2, "tax": 10.5, "tags": []},
+}
+@app.get("/items1/{item_id}", response_model=Item, response_model_exclude_unset=True)
+async def read_item(item_id: str):
+    return items[item_id]
+
+# response_model_include and response_model_exclude
+items = {
+    "foo": {"name": "Foo", "price": 50.2},
+    "bar": {"name": "Bar", "description": "The Bar fighters", "price": 62, "tax": 20.2},
+    "baz": {
+        "name": "Baz",
+        "description": "There goes my baz",
+        "price": 50.2,
+        "tax": 10.5,
+    },
+}
+
+@app.get(
+    "/items/{item_id}/name",
+    response_model=Item,
+    response_model_include={"name", "description"},
+)
+async def read_item_name(item_id: str):
+    return items[item_id]
+@app.get("/items/{item_id}/public", response_model=Item, response_model_exclude={"tax"})
+async def read_item_public_data(item_id: str):
+    return items[item_id]
+
+# Using lists instead of sets
+@app.get(
+    "/items1/{item_id}/name",
+    response_model=Item,
+    response_model_include=["name", "description"],
+)
+async def read_item_name(item_id: str):
+    return items[item_id]
+
+
+@app.get("/items1/{item_id}/public", response_model=Item, response_model_exclude=["tax"])
+async def read_item_public_data(item_id: str):
+    return items[item_id]
