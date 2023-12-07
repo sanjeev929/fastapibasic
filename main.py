@@ -1,6 +1,6 @@
 from enum import Enum
 from datetime import datetime, time, timedelta
-from fastapi import FastAPI,Query,Path,Body,Cookie,Header,status,Response
+from fastapi import FastAPI,Query,Path,Body,Cookie,Header,status,Response,Form
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel,Field,HttpUrl,EmailStr
 from typing import Annotated,Union,List,Dict,Any
@@ -146,6 +146,11 @@ class Item13(BaseModel):
     price: float
     tax: float = 10.5
 
+class Item14(BaseModel):
+    name: str
+    description: str
+
+
 class UserIn1(BaseModel):
     username: str
     password: str
@@ -177,14 +182,64 @@ class Offer(BaseModel):
     name: str
     description: str | None = None
     price: float
-    items: list[Item]    
+    items: list[Item]
+
+class UserInn(BaseModel):
+    username: str
+    password: str
+    email: EmailStr
+    full_name: str | None = None
+
+
+class UserOutt(BaseModel):
+    username: str
+    email: EmailStr
+    full_name: str | None = None
+
+
+class UserInDB(BaseModel):
+    username: str
+    hashed_password: str
+    email: EmailStr
+    full_name: str | None = None
+
+class UserBase3(BaseModel):
+    username: str
+    email: EmailStr
+    full_name: str | None = None
+
+
+class UserInn1(UserBase3):
+    password: str
+
+
+class UserOutt1(UserBase3):
+    pass
+
+
+class UserInDB1(UserBase3):
+    hashed_password: str
+
+class BaseItem(BaseModel):
+    description: str
+    type: str
+
+
+class CarItem(BaseItem):
+    type: str = "car"
+
+
+class PlaneItem(BaseItem):
+    type: str = "plane"
+    size: int    
 
 app = FastAPI()
 
 # Basic
 @app.get("/hi")
 async def root(response:Response):
-    response.status_code=status.HTTP_201_CREATED
+    # response.status_code=status.HTTP_201_CREATED
+    response.status_code = 404
     return {"message": "Hello World"}
 
 # path parameters
@@ -796,3 +851,81 @@ async def read_item_name(item_id: str):
 @app.get("/items1/{item_id}/public", response_model=Item, response_model_exclude=["tax"])
 async def read_item_public_data(item_id: str):
     return items[item_id]
+
+# Extra Models
+# Multiple models
+def fake_password_hasher(raw_password: str):
+    return "supersecret" + raw_password
+
+
+def fake_save_user(user_in: UserInn):
+    hashed_password = fake_password_hasher(user_in.password)
+    user_in_db = UserInDB(**user_in.dict(), hashed_password=hashed_password)
+    print("User saved! ..not really",user_in_db)
+    return user_in_db
+
+
+@app.post("/usermultimodels/", response_model=UserOutt)
+async def create_user(user_in: UserInn):
+    user_saved = fake_save_user(user_in)
+    return user_saved
+
+# Reduce duplication
+def fake_password_hasher(raw_password: str):
+    return "supersecret" + raw_password
+
+
+def fake_save_user(user_in: UserInn1):
+    hashed_password = fake_password_hasher(user_in.password)
+    user_in_db = UserInDB(**user_in.dict(), hashed_password=hashed_password)
+    print("User saved! ..not really")
+    return user_in_db
+
+
+@app.post("/userduplication/", response_model=UserOutt1)
+async def create_user(user_in: UserInn1):
+    user_saved = fake_save_user(user_in)
+    return user_saved
+
+# Union or anyOf
+items = {
+    "item1": {"description": "All my friends drive a low rider", "type": "car"},
+    "item2": {
+        "description": "Music is my aeroplane, it's my aeroplane",
+        "type": "plane",
+        "size": 5,
+    },
+}
+
+@app.get("/itemss/{item_id}", response_model=Union[PlaneItem, CarItem])
+async def read_item(item_id: str):
+    return items[item_id]
+
+# List of models
+items = [
+    {"name": "Foo", "description": "There comes my hero"},
+    {"name": "Red", "description": "It's my aeroplane"},
+]
+@app.get("/itemslistofmodel/", response_model=list[Item14])
+async def read_items():
+    return items
+
+# Response with arbitrary dict
+@app.get("/keyword-weights/", response_model=dict[str, float])
+async def read_keyword_weights():
+    return {"foo": 2.3, "bar": 3.0}
+
+# Response Status Code
+@app.post("/itemsstatuscode/", status_code=201)
+async def create_item(name: str):
+    return {"name": name}
+
+# Shortcut to remember the names
+@app.post("/itemsshortcut/", status_code=status.HTTP_404_NOT_FOUND)
+async def create_item(name: str):
+    return {"name": name}
+
+# Form Data
+@app.post("/loginform/")
+async def login(username: Annotated[str, Form()], password: Annotated[str, Form()]):
+    return {"username": username}
