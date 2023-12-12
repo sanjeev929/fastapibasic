@@ -1,10 +1,25 @@
 from enum import Enum
 from datetime import datetime, time, timedelta
-from fastapi import FastAPI,Query,Path,Body,Cookie,Header,status,Response,Form
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi import FastAPI,Query,Path,Body,Cookie,Header,status,Response,Form,File, UploadFile,HTTPException,Depends
+from fastapi.responses import JSONResponse, RedirectResponse,HTMLResponse
 from pydantic import BaseModel,Field,HttpUrl,EmailStr
+from fastapi.encoders import jsonable_encoder
 from typing import Annotated,Union,List,Dict,Any
 from uuid import UUID
+
+
+fake_db = {}
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+async def verify_token(x_token: Annotated[str, Header()]):
+    if x_token != "fake-super-secret-token":
+        raise HTTPException(status_code=400, detail="X-Token header invalid")
+
+
+async def verify_key(x_key: Annotated[str, Header()]):
+    if x_key != "fake-super-secret-key":
+        raise HTTPException(status_code=400, detail="X-Key header invalid")
+    return x_key
 
 class ModelName(str, Enum):
     alexnet = "alexnet"
@@ -150,6 +165,31 @@ class Item14(BaseModel):
     name: str
     description: str
 
+class Item15(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+    tags: set[str] = set()
+
+class Item16(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+    tags: set[str] = set()
+
+class Item17(BaseModel):
+    title: str
+    timestamp: datetime
+    description: str | None = None 
+
+class Item18(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    price: float | None = None
+    tax: float = 10.5
+    tags: list[str] = []       
 
 class UserIn1(BaseModel):
     username: str
@@ -233,7 +273,11 @@ class PlaneItem(BaseItem):
     type: str = "plane"
     size: int    
 
-app = FastAPI()
+class Tags(Enum):
+    items = "items"
+    users = "users"
+
+app = FastAPI(dependencies=[Depends(verify_token), Depends(verify_key)])
 
 # Basic
 @app.get("/hi")
@@ -929,3 +973,275 @@ async def create_item(name: str):
 @app.post("/loginform/")
 async def login(username: Annotated[str, Form()], password: Annotated[str, Form()]):
     return {"username": username}
+
+# Request Files
+# File Parameters with UploadFile
+@app.post("/files/")
+async def create_file(file: Annotated[bytes, File()]):
+    return {"file_size": len(file)}
+
+@app.post("/uploadfile/")
+async def create_upload_file(file: UploadFile):
+    return {"filename": file.filename}
+
+# Optional File Upload
+@app.post("/filesoptional/")
+async def create_file(file: Annotated[bytes | None, File()] = None):
+    if not file:
+        return {"message": "No file sent"}
+    else:
+        return {"file_size": len(file)}
+
+
+@app.post("/uploadfileoptional/")
+async def create_upload_file(file: UploadFile | None = None):
+    if not file:
+        return {"message": "No upload file sent"}
+    else:
+        return {"filename": file.filename}
+
+# UploadFile with Additional Metadata
+@app.post("/filesmeta/")
+async def create_file(file: Annotated[bytes, File(description="A file read as bytes")]):
+    return {"file_size": len(file)}
+
+
+@app.post("/uploadfilemeta/")
+async def create_upload_file(
+    file: Annotated[UploadFile, File(description="A file read as UploadFile")],
+):
+    return {"filename": file.filename}
+
+# Multiple File Uploads
+@app.post("/filesmulti/")
+async def create_files(files: Annotated[list[bytes], File()]):
+    return {"file_sizes": [len(file) for file in files]}
+
+
+@app.post("/uploadfilesmulti/")
+async def create_upload_files(files: list[UploadFile]):
+    return {"filenames": [file.filename for file in files]}
+
+
+@app.get("/multifile/")
+async def main():
+    content = """
+<body>
+<form action="/files/" enctype="multipart/form-data" method="post">
+<input name="files" type="file" multiple>
+<input type="submit">
+</form>
+<form action="/uploadfiles/" enctype="multipart/form-data" method="post">
+<input name="files" type="file" multiple>
+<input type="submit">
+</form>
+</body>
+    """
+    return HTMLResponse(content=content)
+
+# Request Forms and Files
+# Define File and Form parameters
+@app.post("/files/")
+async def create_file(
+    file: Annotated[bytes, File()],
+    fileb: Annotated[UploadFile, File()],
+    token: Annotated[str, Form()],
+):
+    return {
+        "file_size": len(file),
+        "token": token,
+        "fileb_content_type": fileb.content_type,
+    }
+
+# Handling Errors
+items = {"foo": "The Foo Wrestlers"}
+@app.get("/itemserror/{item_id}")
+async def read_item(item_id: str):
+    if item_id not in items:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"item": items[item_id]}
+
+# Add custom headers
+@app.get("/items-header/{item_id}")
+async def read_item_header(item_id: str):
+    if item_id not in items:
+        raise HTTPException(
+            status_code=404,
+            detail="Item not found",
+            headers={"X-Error": "There goes my error"},
+        )
+    return {"item": items[item_id]}
+
+# Path Operation Configuration
+@app.post("/itemspathoperation/", response_model=Item15, status_code=status.HTTP_201_CREATED)
+async def create_item(item: Item15):
+    return item
+
+# Tags
+@app.post("/itemstag1/", response_model=Item, tags=["items"])
+async def create_item(item: Item):
+    return item
+
+
+@app.get("/itemstag2/", tags=["items"])
+async def read_items():
+    return [{"name": "Foo", "price": 42}]
+
+
+@app.get("/userstag3/", tags=["users"])
+async def read_users():
+    return [{"username": "johndoe"}]
+
+# Tags with Enums
+@app.get("/itemsenum/", tags=[Tags.items])
+async def get_items():
+    return ["Portal gun", "Plumbus"]
+
+
+@app.get("/usersenum/", tags=[Tags.users])
+async def read_users():
+    return ["Rick", "Morty"]
+
+# Summary and description
+@app.post(
+    "/itemssummery/",
+    response_model=Item15,
+    summary="Create an item",
+    description="Create an item with all the information, name, description, price, tax and a set of unique tags",
+)
+async def create_item(item: Item15):
+    return item
+
+# Description from docstring
+@app.post("/itemsdocstring/", response_model=Item15, summary="Create an item")
+async def create_item(item: Item15):
+    """
+    Create an item with all the information:
+
+    - **name**: each item must have a name
+    - **description**: a long description
+    - **price**: required
+    - **tax**: if the item doesn't have tax, you can omit this
+    - **tags**: a set of unique tag strings for this item
+    """
+    return item
+
+# Response description
+@app.post(
+    "/itemsresponsedescriptions/",
+    response_model=Item15,
+    summary="Create an item",
+    response_description="The created item",
+)
+async def create_item(item: Item15):
+    """
+    Create an item with all the information:
+
+    - **name**: each item must have a name
+    - **description**: a long description
+    - **price**: required
+    - **tax**: if the item doesn't have tax, you can omit this
+    - **tags**: a set of unique tag strings for this item
+    """
+    return item
+
+# Deprecate a path operation
+@app.get("/itemsdeprication/", tags=["items"])
+async def read_items():
+    return [{"name": "Foo", "price": 42}]
+
+
+@app.get("/usersdeprication/", tags=["users"])
+async def read_users():
+    return [{"username": "johndoe"}]
+
+
+@app.get("/elementsdepricaition/", tags=["items"], deprecated=True)
+async def read_elements():
+    return [{"item_id": "Foo"}]
+
+# JSON Compatible Encoder
+# Using the jsonable_encoder
+@app.put("/itemsencoder/{id}")
+def update_item(id: str, item: Item17):
+    json_compatible_item_data = jsonable_encoder(item)
+    fake_db[id] = json_compatible_item_data
+    return fake_db
+
+# Body - Updates
+# Update replacing with PUT
+items = {
+    "foo": {"name": "Foo", "price": 50.2},
+    "bar": {"name": "Bar", "description": "The bartenders", "price": 62, "tax": 20.2},
+    "baz": {"name": "Baz", "description": None, "price": 50.2, "tax": 10.5, "tags": []},
+}
+
+
+@app.get("/itemsbody1/{item_id}", response_model=Item18)
+async def read_item(item_id: str):
+    return items[item_id]
+
+
+@app.put("/itemsbody2/{item_id}", response_model=Item18)
+async def update_item(item_id: str, item: Item18):
+    update_item_encoded = jsonable_encoder(item)
+    print(update_item_encoded)
+    items[item_id] = update_item_encoded
+    return items
+
+# Classes as Dependencies
+async def common_parameters(q: str | None = None, skip: int = 0, limit: int = 100):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
+@app.get("/itemsdepends/")
+async def read_items(commons: Annotated[dict, Depends(common_parameters)]):
+    return commons
+
+
+@app.get("/usersdepends/")
+async def read_users(commons: Annotated[dict, Depends(common_parameters)]):
+    return commons
+
+# Shortcut
+class CommonQueryParams:
+    def __init__(self, q: str | None = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+@app.get("/itemsshortcut/")
+async def read_items(commons: Annotated[CommonQueryParams, Depends()]):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+
+# Dependencies in path operation decorators
+# Add dependencies to the path operation decorator
+async def verify_token(x_token: Annotated[str, Header()]):
+    if x_token != "fake-super-secret-token":
+        raise HTTPException(status_code=400, detail="X-Token header invalid")
+
+
+async def verify_key(x_key: Annotated[str, Header()]):
+    if x_key != "fake-super-secret-key":
+        raise HTTPException(status_code=400, detail="X-Key header invalid")
+    return x_key
+
+
+@app.get("/itemsdepends1/", dependencies=[Depends(verify_token), Depends(verify_key)])
+async def read_items():
+    return [{"item": "Foo"}, {"item": "Bar"}]
+
+# Global Dependencies
+@app.get("/itemsglobal/")
+async def read_items():
+    return [{"item": "Portal Gun"}, {"item": "Plumbus"}]
+
+
+@app.get("/usersglobal/")
+async def read_users():
+    return [{"username": "Rick"}, {"username": "Morty"}]
