@@ -1,6 +1,6 @@
 from enum import Enum
 from datetime import datetime, time, timedelta
-from fastapi import FastAPI,Query,Path,Body,Cookie,Header,status,Response,Form,File, UploadFile,HTTPException,Depends,status
+from fastapi import FastAPI,Query,Path,Body,Cookie,Header,status,Response,Form,File, UploadFile,HTTPException,Depends,status,Request
 from fastapi.security import OAuth2PasswordBearer,OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse, RedirectResponse,HTMLResponse
 from jose import JWTError, jwt
@@ -9,7 +9,23 @@ from pydantic import BaseModel,Field,HttpUrl,EmailStr
 from fastapi.encoders import jsonable_encoder
 from typing import Annotated,Union,List,Dict,Any
 from uuid import UUID
+from fastapi.middleware.cors import CORSMiddleware
 
+app = FastAPI()
+origins = [
+    "http://localhost.tiangolo.com",
+    "https://localhost.tiangolo.com",
+    "http://localhost",
+    "http://localhost:8080",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
 ALGORITHM = "HS256"
@@ -319,9 +335,13 @@ class UserInDBs(User):
     disabled: bool
 
 # app = FastAPI(dependencies=[Depends(verify_token), Depends(verify_key)])
-app = FastAPI()
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+@app.get("/")
+async def main():
+    return {"message": "Hello World"}
 
 # Basic
 @app.get("/hi")
@@ -1406,3 +1426,10 @@ async def read_own_items(
 ):
     return [{"item_id": "Foo", "owner": current_user.username}]
 
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    start_time =datetime.now()
+    response = await call_next(request)
+    process_time = datetime.now() - start_time
+    response.headers["X-Process-Time"] = str(process_time)
+    return response
