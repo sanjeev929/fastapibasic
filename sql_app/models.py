@@ -297,7 +297,7 @@ class Userd(Base):
     hashed_password = Column(String)
     is_active = Column(Boolean, default=True)
 
-    items = relationship("Item", back_populates="owner")
+    items = relationship("Itemd", back_populates="owner")
 
 
 class Itemd(Base):
@@ -308,4 +308,4 @@ class Itemd(Base):
     description = Column(String, index=True)
     owner_id = Column(Integer, ForeignKey("users.id"))
 
-    owner = relationship("User", back_populates="items")
+    owner = relationship("Userd", back_populates="items")
