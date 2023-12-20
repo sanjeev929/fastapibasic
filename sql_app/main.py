@@ -5,13 +5,13 @@ from fastapi.security import OAuth2PasswordBearer,OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse, RedirectResponse,HTMLResponse
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from models import *
+from .models import *
 from fastapi.encoders import jsonable_encoder
 from typing import Annotated,Union,List,Dict,Any
 from uuid import UUID
 from fastapi.middleware.cors import CORSMiddleware
-import models, schemas,crud
-from database import SessionLocal, engine
+from . import models, schemas,crud
+from .database import SessionLocal, engine
 from sqlalchemy.orm import Session
 
 models.Base.metadata.create_all(bind=engine)

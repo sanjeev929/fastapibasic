@@ -4,8 +4,7 @@ from enum import Enum
 from typing import Annotated,Union,List,Dict,Any
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
-from database import Base
-
+from .database import Base
 
 class Item(BaseModel):
     name: str
