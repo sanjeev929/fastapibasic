@@ -2,7 +2,17 @@ from pydantic import BaseModel,Field,HttpUrl,EmailStr
 from datetime import datetime, time, timedelta
 from enum import Enum
 from typing import Annotated,Union,List,Dict,Any
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
+from database import Base
 
+
+class Item(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+    
 class ModelName(str, Enum):
     alexnet = "alexnet"
     resnet = "resnet"
@@ -23,12 +33,6 @@ class Item0(BaseModel):
     )
     price: float = Field(gt=0, description="The price must be greater than zero")
     tax: float | None = None 
-
-class Item(BaseModel):
-    name: str
-    description: str | None = None
-    price: float
-    tax: float | None = None
 
 class Item1(BaseModel):
     name: str
@@ -284,3 +288,24 @@ class Users(BaseModel):
 class UserInDBs(User):
     hashed_password: str
     disabled: bool
+
+class Userd(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    is_active = Column(Boolean, default=True)
+
+    items = relationship("Item", back_populates="owner")
+
+
+class Itemd(Base):
+    __tablename__ = "items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, index=True)
+    description = Column(String, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id"))
+
+    owner = relationship("User", back_populates="items")

@@ -150,22 +150,23 @@ async def read_user_item(
     return item
 
 #Request Body
-@app.post("/itemsbase/")
-async def create_item(item: Item):
-    item_dict = item.dict()
-    if item.tax:
-        price_with_tax = item.price + item.tax
-        item_dict.update({"price_with_tax": price_with_tax})
-    return item_dict
+# @app.post("/itemsbase1/")
+# async def create_item1(item: Item):
+#     item_dict = item.dict()
+#     if item.tax:
+#         price_with_tax = item.price + item.tax
+#         item_dict.update({"price_with_tax": price_with_tax})
+#     return item_dict
 
 # Request body + path parameters
+
 @app.put("/itemadd/{item_id}")
-async def create_item(item_id: int, item: Item):
+async def create_item2(item_id: int, item: Item):
     return {"item_id": item_id, **item.dict()}
 
 #Request body + path + query parameters
 @app.put("/itemsaddapra/{item_id}")
-async def create_item(item_id: int, item: Item, q: str | None = None):
+async def create_item3(item_id: int, item: Item, q: str | None = None):
     result = {"item_id": item_id, **item.dict()}
     if q:
         result.update({"q": q})
