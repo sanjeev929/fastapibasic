@@ -2,4 +2,4 @@ fastapibaseenv/
 __pycache__
 log.txt
 .pytest_cache
-__init__.py
+__init__.pygit rm --cached __init__.py
