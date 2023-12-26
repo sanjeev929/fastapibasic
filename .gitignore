@@ -1,2 +1,5 @@
 fastapibaseenv/
 __pycache__
+log.txt
+.pytest_cache
+__init__.py
