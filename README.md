@@ -16,7 +16,7 @@ pip install -r requirements.txt
 ```
 ## Run the project using following command
 ```bash
-uvicorn main:app --reload
+uvicorn sql_app/main:app --reload
 ```
 Now your project is almost ready, you can view the Swagger UI by open your browser and type following Url
 ```bash
