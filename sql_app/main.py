@@ -1,22 +1,53 @@
 
 from datetime import datetime, time, timedelta
-from fastapi import FastAPI,Query,Path,Body,Cookie,Header,status,Response,Form,File, UploadFile,HTTPException,Depends,status,Request
+from fastapi import FastAPI,Query,Path,Body,Cookie,Header,status,Response,Form,File, UploadFile,HTTPException,Depends,status,Request,BackgroundTasks
 from fastapi.security import OAuth2PasswordBearer,OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse, RedirectResponse,HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from .models import *
+from models import *
 from fastapi.encoders import jsonable_encoder
 from typing import Annotated,Union,List,Dict,Any
 from uuid import UUID
 from fastapi.middleware.cors import CORSMiddleware
-from . import models, schemas,crud
-from .database import SessionLocal, engine
+import models, schemas,crud
+from database import SessionLocal, engine
 from sqlalchemy.orm import Session
 
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
+description = """
+ChimichangApp API helps you do awesome stuff. 🚀
+
+## Items
+
+You can **read items**.
+
+## Users
+
+You will be able to:
+
+* **Create users** (_not implemented_).
+* **Read users** (_not implemented_).
+"""
+app = FastAPI(
+    title="Fastapi Learning",
+    description=description,
+    summary="Python's favorite app. Nuff said.",
+    version="0.0.1",
+    terms_of_service="http://example.com/terms/",
+    contact={
+        "name": "sanjeev",
+        "url": "http://x-force.example.com/contact/",
+        "email": "dp@x-force.example.com",
+    },
+    license_info={
+        "name": "Apache 2.0",
+        "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
+    },
+)
+
 
 
 origins = [
@@ -1203,3 +1234,15 @@ def create_item_for_user(
 def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     items = crud.get_items(db, skip=skip, limit=limit)
     return items
+
+
+# Add the background task
+def write_notification(email: str, message=""):
+    with open("log.txt", mode="w") as email_file:
+        content = f"notification for {email}: {message}"
+        email_file.write(content)
+
+@app.post("/send-notification/{email}")
+async def send_notification(email: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(write_notification, email, message="some notification")
+    return {"message": "Notification sent in the background"}
