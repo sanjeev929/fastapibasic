@@ -24,9 +24,10 @@ SQLALCHEMY_DATABASE_URL = "postgresql://name:password@localhost:5432/postgres"
 cd sql_app
 ```
 ```bash
-uvicorn main:app --reload
+python main.py
 ```
-Now your project is almost ready, you can view the Swagger UI by open your browser and type following Url
+Now your project is almost ready, you can view the Swagger UI by open your browser and type
+#your ip address with port
 ```bash
 127.0.0.1:8000/docs
 ```
