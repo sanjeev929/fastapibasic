@@ -14,7 +14,15 @@ python -m venv envname
 ```bash
 pip install -r requirements.txt
 ```
+## Setup sql database
+Open database.py file then replace your sql database name and password to SQLALCHEMY_DATABASE_URL variable.
+```bash
+SQLALCHEMY_DATABASE_URL = "postgresql://name:password@localhost:5432/postgres"
+```
 ## Run the project using following command
+```bash
+cd sql_app
+```
 ```bash
 uvicorn main:app --reload
 ```
