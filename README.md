@@ -27,7 +27,7 @@ cd sql_app
 python main.py
 ```
 Now your project is almost ready, you can view the Swagger UI by open your browser and type
-#your ip address with port
+# your ip address with port
 ```bash
 127.0.0.1:8000/docs
 ```
