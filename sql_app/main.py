@@ -1,4 +1,4 @@
-
+import uvicorn
 from datetime import datetime, time, timedelta
 from fastapi import FastAPI,Query,Path,Body,Cookie,Header,status,Response,Form,File, UploadFile,HTTPException,Depends,status,Request,BackgroundTasks
 from fastapi.security import OAuth2PasswordBearer,OAuth2PasswordRequestForm
@@ -1245,3 +1245,5 @@ async def send_notification(email: str, background_tasks: BackgroundTasks):
     background_tasks.add_task(write_notification, email, message="some notification")
     return {"message": "Notification sent in the background"}
 
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
